@@ -1,19 +1,19 @@
 ### Testar com imagens do dockerhub
-```
+```shell
 docker-compose up -D -f compose.full.yml
 ```
 
 ### Devs - fazer build com source
-```
+```shell
 docker-compose up --build -d -f compose.full.yml
 ```
 
 ### Caso queria rodar todos serviços exceto o backend 
-```
+```shell
 docker-compose up --build -d -f compose.nobackend.yml
 ```
 ### Assim você pode executar o backend como desenvolvedor ou pela ide eclipse
-```
+```shell
 @echo off
 
 REM Finalizar java e javaw
