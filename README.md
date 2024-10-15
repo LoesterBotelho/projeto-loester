@@ -1,11 +1,11 @@
 ### Testar com imagens do dockerhub
 ```
-docker-compose up -D
+docker-compose up -D -f compose.full.yml
 ```
 
 ### Devs - fazer build com source
 ```
-docker-compose up --build
+docker-compose up --build -d -f compose.full.yml
 ```
 
 Frontend
