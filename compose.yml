@@ -1,0 +1,162 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: always
+    environment:      
+      POSTGRES_PASSWORD: PA@password      
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./sql_postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.100
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: loester@localhost.com
+      PGADMIN_DEFAULT_PASSWORD: loester
+    ports:
+      - 16543:80
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.115
+
+#  backend:
+#    image: loesterbotelho/backend:v1
+#    container_name: backend
+#    restart: always
+#    build:
+#      context: .
+#      dockerfile: v1-backend.dockerfile
+#    environment:
+#      SPRING_PROFILES_ACTIVE: prod
+#      PG_URL: jdbc:postgresql://postgres:5432/postgres?user=postgres&password=PA@password
+#    ports:
+#      - "8080:8080"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#    depends_on:
+#      - postgres
+#    networks:
+#      loester-network:
+#        ipv4_address: 192.168.10.110
+#    volumes:
+#      - backend_data:/app/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: v1-frontend.dockerfile
+    image: loesterbotelho/frontend:v1
+    container_name: frontend
+    restart: always    
+    ports:
+      - "80:80"
+#    depends_on:
+#      - backend
+    environment:
+      - NODE_ENV=production
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.120
+    volumes:
+      - frontend_data:/app/data
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    restart: always    
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: loester
+      RABBITMQ_DEFAULT_PASS: loester
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.101
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always    
+    ports:
+      - "6379:6379"
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.102
+    volumes:
+      - redis_data:/data
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always    
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: loester
+      MONGO_INITDB_ROOT_PASSWORD: loester
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.103
+
+  flyway:
+    image: flyway/flyway
+    container_name: flyway
+    depends_on:
+      - postgres
+    environment:
+      FLYWAY_BASELINE_ON_MIGRATE: true
+      FLYWAY_CLEAN_DISABLED: false
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/postgres
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: PA@password      
+    volumes:
+      - ./sql_flyway:/flyway/sql
+    command: -connectRetries=30 clean migrate
+    networks:
+      loester-network:
+        ipv4_address: 192.168.10.104
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+  backend_data:
+    driver: local
+  frontend_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local
+
+networks:
+  loester-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.10.0/24
